@@ -32,15 +32,16 @@
 #	require => [Jdk6["Java6SDK"], Play::Module["mongodb module"]]
 #  }
 #
-class play ($version = "1.2.3", $install_path = "/opt") {
+class play ($version = "2.1.1", $install_path = "/opt") {
 
 	include wget
 
 	$play_version = $version
 	$play_path = "${install_path}/play-${play_version}"
 	$download_url = $play_version ? {
-	  '2.1.0' => "http://downloads.typesafe.com/play/${play_version}/play-${play_version}.zip",
-	  default => "http://downloads.typesafe.com/releases/play-${play_version}.zip",
+          ## This selects for any version below 2.1.0 since the download URL is different
+	  /(2\.0(\.\d)*|1(\.\d+)+)/ => "http://downloads.typesafe.com/releases/play-${play_version}.zip",
+	  default                   => "http://downloads.typesafe.com/play/${play_version}/play-${play_version}.zip",
 	}
 	
 	notice("Installing Play ${play_version}")

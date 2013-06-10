@@ -18,7 +18,7 @@
 # Sample Usage:
 #  include play
 #  play::module {"mongodb module" :
-# 	module  => "mongo-1.3", 
+# 	module  => "mongo-1.3",
 #	require => [Class["play"], Class["mongodb"]]
 #  }
 #
@@ -32,56 +32,59 @@
 #	require => [Jdk6["Java6SDK"], Play::Module["mongodb module"]]
 #  }
 #
-class play ($version = "2.1.1", $install_path = "/opt") {
+class play ($version = "2.1.1", $install_path = "/opt", $bucket = 'puppet-filesource', $key = "play-framework/play-${version}.zip") {
 
-	include wget
+## We don't need to use this module
+#	include wget
 
-	$play_version = $version
-	$play_path = "${install_path}/play-${play_version}"
-	$download_url = $play_version ? {
-          ## This selects for any version below 2.1.0 since the download URL is different
-	  /(2\.0(\.\d)*|1(\.\d+)+)/ => "http://downloads.typesafe.com/releases/play-${play_version}.zip",
-	  default                   => "http://downloads.typesafe.com/play/${play_version}/play-${play_version}.zip",
-	}
-	
-	notice("Installing Play ${play_version}")
-        wget::fetch {'download-play-framework':
-          source      => "$download_url",
-          destination => "/tmp/play-${play_version}.zip",
-          timeout     => 0,
-        }
+  ## $bucket is the aws bucket to pull from
+  ## $key is the full path to the file in the bucket
+  ## $filename is the name to download the package as.
+  $play_version  = $version
+  $filename      = "play-${play_version}.zip"
+  $play_path     = "${install_path}/play-${play_version}"
+  $curl_url      = s3getcurl($bucket, $key, $filename, 300)
+  $file_checksum = s3getEtag($bucket, $key)
+  notice("Installing Play ${play_version}")
+  exec { 'download-play-framework' :
+    command => "$curl_url; mv ${filename} ${install_path}/",
+    cwd => '/tmp',
+    #path => '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
+    unless => "echo \"$file_checksum $install_path/$filename\" | md5sum -c --status",
+    require => Exec['mkdir.play.install.path'],
+  }
 
-    exec { "mkdir.play.install.path":
-        command => "/bin/mkdir -p ${install_path}",
-        unless  => "test -d ${install_path}"
-    }
+  exec { "mkdir.play.install.path":
+    command => "/bin/mkdir -p ${install_path}",
+    unless  => "test -d ${install_path}"
+  }
 
-	exec {"unzip-play-framework":
-	    cwd     => "${install_path}",
-        command => "/usr/bin/unzip /tmp/play-${play_version}.zip",
-        unless  => "test -d $play_path",
-        require => [ Package["unzip"], Wget::Fetch["download-play-framework"], Exec["mkdir.play.install.path"] ],
-	}
-	
-	file { "$play_path/play":
-	    ensure  => file,
-	    owner   => "root",
-	    mode    => "0755",
-	    require => [Exec["unzip-play-framework"]]
-	}
+  exec {"unzip-play-framework":
+    cwd     => "${install_path}",
+    command => "/usr/bin/unzip ${install_path}/play-${play_version}.zip",
+    unless  => "test -d $play_path",
+    require => [ Package["unzip"], Exec["download-play-framework"], Exec["mkdir.play.install.path"] ],
+  }
 
-	file {'/usr/bin/play':
-	    ensure  => 'link',
-	    target  => "$play_path/play",
-	    require => File["$play_path/play"],
-	}
+  file { "$play_path/play":
+    ensure  => file,
+    owner   => "root",
+    mode    => "0755",
+    require => [Exec["unzip-play-framework"]]
+  }
 
-    # Add a unversioned symlink to the play installation.
-    file { "${install_path}/play":
-        ensure => link,
-        target => $play_path,
-        require => Exec["mkdir.play.install.path", "unzip-play-framework"]
-    }
-	
-	if !defined(Package['unzip']){ package{"unzip": ensure => installed} }	
+  file {'/usr/bin/play':
+    ensure  => 'link',
+    target  => "$play_path/play",
+    require => File["$play_path/play"],
+  }
+
+  # Add a unversioned symlink to the play installation.
+  file { "${install_path}/play":
+    ensure => link,
+    target => $play_path,
+    require => Exec["mkdir.play.install.path", "unzip-play-framework"]
+  }
+
+  if !defined(Package['unzip']){ package{"unzip": ensure => installed} }
 }

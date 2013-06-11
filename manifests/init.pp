@@ -44,13 +44,14 @@ class play ($version = "2.1.1", $install_path = "/opt", $bucket = 'puppet-fileso
   $filename      = "play-${play_version}.zip"
   $play_path     = "${install_path}/play-${play_version}"
   $curl_url      = s3getcurl($bucket, $key, $filename, 300)
-  $file_checksum = s3getEtag($bucket, $key)
+# Need to fix this, but for now disable it.
+#  $file_checksum = s3getEtag($bucket, $key)
   notice("Installing Play ${play_version}")
   exec { 'download-play-framework' :
     command => "$curl_url; mv ${filename} ${install_path}/",
     cwd => '/tmp',
     #path => '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
-    unless => "echo \"$file_checksum $install_path/$filename\" | md5sum -c --status",
+#    unless => "echo \"$file_checksum $install_path/$filename\" | md5sum -c --status",
     require => Exec['mkdir.play.install.path'],
   }
 

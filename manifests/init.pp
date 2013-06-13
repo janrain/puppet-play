@@ -51,7 +51,7 @@ class play ($version = "2.1.1", $install_path = "/opt", $bucket = 'puppet-fileso
     command => "$curl_url; mv ${filename} ${install_path}/",
     cwd => '/tmp',
     #path => '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
-    unless => "echo \"$file_checksum $install_path/$filename\" | md5sum -c --status",
+    unless => "echo \"$file_checksum  $install_path/$filename\" | md5sum -c --status",
     require => Exec['mkdir.play.install.path'],
   }
 

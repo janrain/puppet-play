@@ -6,7 +6,7 @@
 #
 # == Parameters
 #
-# [*path*] 
+# [*path*]
 #  mandatory, absolute path of the application.
 #
 # [*sync*]
@@ -53,7 +53,7 @@
 #
 define play::application($path, $sync = false, $ensure = running, $frameworkId = "", $javaOptions = "") {
   include play
- 
+
   $syncArgument = ""
   if $sync {
    	$syncArgument = "--sync"
@@ -65,24 +65,30 @@ define play::application($path, $sync = false, $ensure = running, $frameworkId =
   }
 
   if $ensure == running {
-	  notice("Running play application from ${path}")
-	  exec { "play-resolve-dependencies-${path}":                                                                                                                     
-	      command => "${play::play_path}/play dependencies ${syncArgument} ${path}",                                                         
-	      cwd     => "${path}",
-	      unless  => "test -f $path/server.pid",
-	  }  
+    notice("Running play application from ${path}")
+    exec { "play-resolve-dependencies-${path}":
+      # The ${path} on the end part seems to only cause problems.
+      #command => "${play::play_path}/play dependencies ${syncArgument} ${path}",
+      command => "${play::play_path}/play dependencies ${syncArgument}",
+      cwd     => "${path}",
+      unless  => "test -f $path/server.pid",
+  }
 
-	  exec { "start-play-application-${path}":                                                                                                                     
-	      command => "${play::play_path}/play start ${path} ${frameworkArgument} ${javaOptions}",
-	      cwd     => "${path}",
-	      unless  => "test -f $path/server.pid",
-	  }
-	} else {
-		notice("Stopping play application from ${path}")
-		exec { "stop-play-application-${path}":                                                                                                                     
-	      command => "${play::play_path}/play stop ${path}",                                                         
-	      cwd     => "${path}",
-	      onlyif  => "test -f $path/server.pid",
-	  }
-	}	
+  exec { "start-play-application-${path}":
+      #Path
+      #command => "${play::play_path}/play start ${path} ${frameworkArgument} ${javaOptions}",
+      command => "${play::play_path}/play start ${frameworkArgument} ${javaOptions}",
+      cwd     => "${path}",
+      unless  => "test -f $path/server.pid",
+  }
+} else {
+	notice("Stopping play application from ${path}")
+	exec { "stop-play-application-${path}":
+          #seriously paths
+          #command => "${play::play_path}/play stop ${path}",
+          command => "${play::play_path}/play stop",
+          cwd     => "${path}",
+          onlyif  => "test -f $path/server.pid",
+    }
+  }
 }

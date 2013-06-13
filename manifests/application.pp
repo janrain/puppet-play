@@ -80,6 +80,7 @@ define play::application($path, $sync = false, $ensure = running, $frameworkId =
       command => "${play::play_path}/play start ${frameworkArgument} ${javaOptions}",
       cwd     => "${path}",
       unless  => "test -f $path/server.pid",
+      require => Exec["play-resolve-dependencies-${path}"],
   }
 } else {
 	notice("Stopping play application from ${path}")
